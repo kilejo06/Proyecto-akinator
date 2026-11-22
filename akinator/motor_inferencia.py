@@ -23,6 +23,36 @@ def encadenamiento_adelante(hechos, reglas):
     return hechos, activadas
 
 
+def atributo_a_probar(atributo, hipotesis, estado, base):
+    """Sigue la regla hacia atrás hasta un atributo que aún se pueda preguntar."""
+    if atributo in estado.hechos_conocidos:
+        return None
+    for regla in base.reglas:
+        if regla["entonces"] == atributo and base.candidatos[hipotesis][atributo]:
+            for condicion in regla["si"]:
+                pendiente = atributo_a_probar(condicion.removeprefix("no:"), hipotesis, estado, base)
+                if pendiente:
+                    return pendiente
+            return None
+    return None if atributo in estado.preguntas_hechas else atributo
+
+
+def encadenamiento_atras(hipotesis, estado, base):
+    """Devuelve el atributo a preguntar para confirmar la hipótesis, o None si ya se puede adivinar."""
+    datos = base.candidatos
+    otros = [c for c in estado.candidatos if c != hipotesis]
+    separados = {}
+    for atributo, valor in datos[hipotesis].items():
+        cuantos = sum(datos[c][atributo] != valor for c in otros)
+        if cuantos:
+            separados[atributo] = cuantos
+    for atributo in sorted(separados, key=lambda a: (-separados[a], a)):
+        pendiente = atributo_a_probar(atributo, hipotesis, estado, base)
+        if pendiente:
+            return pendiente
+    return None
+
+
 def filtrar_candidatos(nombres, datos, hechos):
     restantes, descartados = [], []
     for nombre in nombres:

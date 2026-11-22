@@ -1,4 +1,5 @@
 """Estado, acciones y recompensas del agente."""
+from motor_inferencia import encadenamiento_adelante, filtrar_candidatos
 
 PUNTOS_ACIERTO = 100
 PUNTOS_PREGUNTA = -2
@@ -44,6 +45,34 @@ def registrar_fallo(estado, candidato):
     if candidato in estado.candidatos:
         estado.candidatos.remove(candidato)
     estado.puntajes.pop(candidato, None)
+
+
+def elegir_hipotesis(estado):
+    return min(estado.candidatos, key=lambda c: (-estado.puntajes[c], c))
+
+
+def procesar_respuesta(estado, base, atributo, respuesta):
+    """respuesta: 'si', 'no' o 'no_se'. Devuelve (reglas activadas, candidatos descartados)."""
+    registrar_pregunta(estado, atributo)
+    if respuesta == "no_se":
+        return [], []
+    valor = respuesta == "si"
+    estado.hechos_conocidos[atributo] = valor
+    for candidato in estado.candidatos:
+        estado.puntajes[candidato] += 1 if base.candidatos[candidato][atributo] == valor else -1
+    estado.hechos_conocidos, activadas = encadenamiento_adelante(estado.hechos_conocidos, base.reglas)
+    estado.candidatos, descartados = filtrar_candidatos(estado.candidatos, base.candidatos, estado.hechos_conocidos)
+    return activadas, descartados
+
+
+def adivinar(estado, candidato, confirmar):
+    """confirmar(candidato) -> bool; separa la lógica del juego de input/print."""
+    acerto = confirmar(candidato)
+    if acerto:
+        registrar_acierto(estado)
+    else:
+        registrar_fallo(estado, candidato)
+    return acerto
 
 
 def atributos_utiles(estado, base):
