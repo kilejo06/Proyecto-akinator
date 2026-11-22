@@ -1,1 +1,125 @@
-[]
+[
+  {
+    "id": "A1",
+    "si": [
+      "tiene_plumas"
+    ],
+    "entonces": "es_ave"
+  },
+  {
+    "id": "A2",
+    "si": [
+      "da_leche"
+    ],
+    "entonces": "es_mamifero"
+  },
+  {
+    "id": "A3",
+    "si": [
+      "tiene_escamas"
+    ],
+    "entonces": "es_reptil"
+  },
+  {
+    "id": "A4",
+    "si": [
+      "tiene_aletas",
+      "no:da_leche"
+    ],
+    "entonces": "es_pez"
+  },
+  {
+    "id": "A5",
+    "si": [
+      "pone_huevos",
+      "vive_en_agua",
+      "tiene_cuatro_patas"
+    ],
+    "entonces": "es_anfibio"
+  },
+  {
+    "id": "A6",
+    "si": [
+      "es_ave",
+      "no:vuela"
+    ],
+    "entonces": "es_ave_no_voladora"
+  },
+  {
+    "id": "A7",
+    "si": [
+      "es_ave",
+      "vuela",
+      "es_carnivoro"
+    ],
+    "entonces": "es_ave_rapaz"
+  },
+  {
+    "id": "A8",
+    "si": [
+      "es_mamifero",
+      "vive_en_agua"
+    ],
+    "entonces": "es_mamifero_marino"
+  },
+  {
+    "id": "A9",
+    "si": [
+      "es_mamifero",
+      "vuela"
+    ],
+    "entonces": "es_mamifero_volador"
+  },
+  {
+    "id": "A10",
+    "si": [
+      "es_mamifero",
+      "es_carnivoro",
+      "no:es_domestico"
+    ],
+    "entonces": "es_depredador_salvaje"
+  },
+  {
+    "id": "A11",
+    "si": [
+      "es_mamifero",
+      "es_herbivoro",
+      "es_domestico"
+    ],
+    "entonces": "es_animal_de_granja"
+  },
+  {
+    "id": "A12",
+    "si": [
+      "es_ave_no_voladora",
+      "vive_en_frio"
+    ],
+    "entonces": "es_ave_polar"
+  },
+  {
+    "id": "A13",
+    "si": [
+      "es_reptil",
+      "es_venenoso"
+    ],
+    "entonces": "es_reptil_peligroso"
+  },
+  {
+    "id": "A14",
+    "si": [
+      "es_pez",
+      "es_carnivoro",
+      "es_grande"
+    ],
+    "entonces": "es_pez_grande"
+  },
+  {
+    "id": "A15",
+    "si": [
+      "es_depredador_salvaje",
+      "es_grande",
+      "vive_en_frio"
+    ],
+    "entonces": "es_depredador_polar"
+  }
+]

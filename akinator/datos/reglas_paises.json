@@ -1,1 +1,132 @@
-[]
+[
+  {
+    "id": "P1",
+    "si": [
+      "esta_en_america",
+      "habla_espanol"
+    ],
+    "entonces": "es_latinoamericano"
+  },
+  {
+    "id": "P2",
+    "si": [
+      "esta_en_america",
+      "esta_en_hemisferio_sur"
+    ],
+    "entonces": "es_sudamericano"
+  },
+  {
+    "id": "P3",
+    "si": [
+      "es_sudamericano",
+      "habla_espanol"
+    ],
+    "entonces": "es_sudamericano_hispano"
+  },
+  {
+    "id": "P4",
+    "si": [
+      "esta_en_europa",
+      "es_miembro_ue"
+    ],
+    "entonces": "es_europeo_comunitario"
+  },
+  {
+    "id": "P5",
+    "si": [
+      "es_isla",
+      "esta_en_asia"
+    ],
+    "entonces": "es_isla_asiatica"
+  },
+  {
+    "id": "P6",
+    "si": [
+      "no:tiene_costa"
+    ],
+    "entonces": "es_sin_salida_al_mar"
+  },
+  {
+    "id": "P7",
+    "si": [
+      "es_monarquia",
+      "esta_en_europa"
+    ],
+    "entonces": "es_monarquia_europea"
+  },
+  {
+    "id": "P8",
+    "si": [
+      "tiene_desierto",
+      "esta_en_africa"
+    ],
+    "entonces": "es_africano_arido"
+  },
+  {
+    "id": "P9",
+    "si": [
+      "esta_en_africa",
+      "tiene_costa",
+      "no:tiene_desierto"
+    ],
+    "entonces": "es_africano_costero"
+  },
+  {
+    "id": "P10",
+    "si": [
+      "habla_ingles",
+      "esta_en_oceania"
+    ],
+    "entonces": "es_anglo_oceanico"
+  },
+  {
+    "id": "P11",
+    "si": [
+      "es_grande",
+      "es_potencia"
+    ],
+    "entonces": "es_gran_potencia"
+  },
+  {
+    "id": "P12",
+    "si": [
+      "es_gran_potencia",
+      "esta_en_asia"
+    ],
+    "entonces": "es_potencia_asiatica"
+  },
+  {
+    "id": "P13",
+    "si": [
+      "habla_ingles",
+      "esta_en_america"
+    ],
+    "entonces": "es_anglo_americano"
+  },
+  {
+    "id": "P14",
+    "si": [
+      "es_latinoamericano",
+      "tiene_selva"
+    ],
+    "entonces": "es_latino_amazonico"
+  },
+  {
+    "id": "P15",
+    "si": [
+      "es_peninsula",
+      "esta_en_europa",
+      "es_miembro_ue"
+    ],
+    "entonces": "es_peninsula_ue"
+  },
+  {
+    "id": "P16",
+    "si": [
+      "tiene_nieve",
+      "tiene_costa",
+      "esta_en_europa"
+    ],
+    "entonces": "es_nordico_costero"
+  }
+]
