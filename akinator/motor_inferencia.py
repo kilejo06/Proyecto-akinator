@@ -21,3 +21,12 @@ def encadenamiento_adelante(hechos, reglas):
                 activadas.append(regla)
                 hubo_cambio = True
     return hechos, activadas
+
+
+def filtrar_candidatos(nombres, datos, hechos):
+    restantes, descartados = [], []
+    for nombre in nombres:
+        contradice = any(datos[nombre][atributo] != valor
+                         for atributo, valor in hechos.items())
+        (descartados if contradice else restantes).append(nombre)
+    return restantes, descartados
