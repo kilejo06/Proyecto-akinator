@@ -42,9 +42,7 @@ def cargar_base(modo):
         candidatos.update(leer_json("paises.json"))
         reglas += leer_json("reglas_paises.json")
 
-    atributos = set()
-    for hechos in candidatos.values():
-        atributos.update(hechos)
+    atributos = list(dict.fromkeys(a for hechos in candidatos.values() for a in hechos))
 
     completos = {nombre: completar_candidato(hechos, atributos, reglas)
                  for nombre, hechos in candidatos.items()}

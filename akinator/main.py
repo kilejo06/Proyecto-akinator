@@ -1,44 +1,27 @@
 """Menú principal y bucle del juego."""
-from agente import (ACERTO, LIMITE, SIN_CANDIDATOS, SIN_PREGUNTAS_UTILES, adivinar,
-                    crear_estado, debe_parar, elegir_hipotesis, procesar_respuesta)
+from agente import LIMITE_PREGUNTAS, SIN_CANDIDATOS
 from base_conocimiento import MODOS, cargar_base
 from heuristica import HEURISTICAS
-from motor_inferencia import encadenamiento_atras
+from partida import UMBRAL_ATRAS, Partida
 from utils import (confirmar_adivinanza, imprimir_traza, pedir_opcion, pedir_respuesta,
                    pedir_si_no)
 
-UMBRAL_ATRAS = 3
 
-
-def elegir_atributo(estado, base, heuristica, hipotesis):
-    if len(estado.candidatos) <= UMBRAL_ATRAS:
-        return encadenamiento_atras(hipotesis, estado, base)
-    return heuristica(estado, base)
-
-
-def jugar(base, heuristica, responder, confirmar, mostrar=None):
+def jugar(base, heuristica, responder, confirmar, mostrar=None, limite_preguntas=LIMITE_PREGUNTAS,
+          umbral_atras=UMBRAL_ATRAS):
     """responder(atributo, pregunta) -> 'si'/'no'/'no_se'; confirmar(candidato) -> bool."""
-    estado = crear_estado(base)
+    partida = Partida(base, heuristica, limite_preguntas, umbral_atras)
     while True:
-        motivo = debe_parar(estado, base)
-        if motivo in (ACERTO, SIN_CANDIDATOS):
-            break
-        hipotesis = elegir_hipotesis(estado)
-        # Al llegar al límite se hace un último intento con la mejor hipótesis
-        atributo = None
-        if motivo is None:
-            atributo = elegir_atributo(estado, base, heuristica, hipotesis)
-        if atributo is None:
-            adivinar(estado, hipotesis, confirmar)
-            if motivo == LIMITE:
-                motivo = ACERTO if estado.acerto else LIMITE
-                break
+        accion = partida.siguiente()
+        if accion["tipo"] == "fin":
+            return partida.estado, partida.motivo
+        if accion["tipo"] == "adivinar":
+            partida.confirmar(confirmar(accion["candidato"]))
             continue
-        respuesta = responder(atributo, base.preguntas[atributo])
-        activadas, descartados = procesar_respuesta(estado, base, atributo, respuesta)
+        respuesta = responder(accion["atributo"], accion["pregunta"])
+        activadas, descartados = partida.responder(respuesta)
         if mostrar:
-            mostrar(estado, base, atributo, respuesta, activadas, descartados)
-    return estado, debe_parar(estado, base) or motivo
+            mostrar(partida.estado, base, accion["atributo"], respuesta, activadas, descartados)
 
 
 def mostrar_resultado(estado, motivo):
