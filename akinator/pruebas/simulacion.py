@@ -8,6 +8,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
+from agente import resumen_metricas
+from automatico import usuario_automatico
 from base_conocimiento import MODOS, cargar_base
 from main import jugar
 
@@ -16,51 +18,51 @@ REPETICIONES_CON_RUIDO = 5
 PROB_NO_SE = 0.3
 METODOS_SIMULADOS = (("Heurística mitad", "heuristica", "mitad"),
                      ("Heurística entropía", "heuristica", "entropia"),
-                     ("Heurística aleatoria", "heuristica", "aleatoria"),
                      ("Encadenamiento adelante", "adelante", "mitad"),
                      ("Encadenamiento atrás", "atras", "mitad"))
 
 
-def usuario_automatico(base, secreto, azar, prob_no_se=0.0, mentir_en=None):
-    contador = {"preguntas": 0}
-
-    def responder(atributo, _pregunta):
-        numero = contador["preguntas"]
-        contador["preguntas"] += 1
-        if azar.random() < prob_no_se:
-            return "no_se"
-        verdad = base.candidatos[secreto][atributo]
-        return "si" if verdad != (numero == mentir_en) else "no"
-
-    return responder
+CLAVES = ("preguntas", "puntaje", "tiempo", "nodos_generados", "reglas_evaluadas", "reglas_disparadas",
+          "hechos_inferidos", "hipotesis_probadas", "max_candidatos", "max_hechos")
 
 
 def simular(modo, metodo, heuristica, repeticiones=1, prob_no_se=0.0, mentir=False):
     azar = random.Random(SEMILLA)
-    random.seed(SEMILLA)
     base = cargar_base(modo)
-    partidas = aciertos = preguntas = puntos = 0
+    partidas = aciertos = optimas = 0
+    suma = dict.fromkeys(CLAVES, 0)
     for secreto in base.candidatos:
         for _ in range(repeticiones):
             mentir_en = azar.randint(0, 5) if mentir else None
             responder = usuario_automatico(base, secreto, azar, prob_no_se, mentir_en)
-            estado, _ = jugar(base, metodo, heuristica, responder, lambda c, s=secreto: c == s)
+            estado, motivo = jugar(base, metodo, heuristica, responder, lambda c, s=secreto: c == s)
+            resumen = resumen_metricas(estado, motivo)
             partidas += 1
-            aciertos += estado.acerto
-            preguntas += estado.num_preguntas
-            puntos += estado.puntos
-    return {"aciertos": 100 * aciertos / partidas, "preguntas": preguntas / partidas,
-            "puntos": puntos / partidas}
+            aciertos += resumen["encontro"]
+            optimas += resumen["optima"]
+            for clave in CLAVES:
+                suma[clave] += resumen[clave]
+    promedios = {clave: valor / partidas for clave, valor in suma.items()}
+    promedios["tiempo"] *= 1000
+    return {"aciertos": 100 * aciertos / partidas, "optimas": 100 * optimas / partidas, **promedios}
 
 
 def imprimir_tabla(titulo, **opciones):
+    resultados = [(modo, nombre, simular(modo, metodo, heuristica, **opciones))
+                  for modo in MODOS for nombre, metodo, heuristica in METODOS_SIMULADOS]
     print(f"\n{titulo}\n")
-    print("| Modo | Método | % aciertos | Promedio preguntas | Puntaje promedio |")
-    print("|---|---|---|---|---|")
-    for modo in MODOS:
-        for nombre, metodo, heuristica in METODOS_SIMULADOS:
-            r = simular(modo, metodo, heuristica, **opciones)
-            print(f"| {modo} | {nombre} | {r['aciertos']:.1f} | {r['preguntas']:.2f} | {r['puntos']:.1f} |")
+    print("| Modo | Método | % aciertos | % óptimas | Preguntas | Puntaje | Tiempo (ms) |")
+    print("|---|---|---|---|---|---|---|")
+    for modo, nombre, r in resultados:
+        print(f"| {modo} | {nombre} | {r['aciertos']:.1f} | {r['optimas']:.1f} | {r['preguntas']:.2f} "
+              f"| {r['puntaje']:.1f} | {r['tiempo']:.2f} |")
+    print("\n| Modo | Método | Nodos generados | Reglas evaluadas | Reglas disparadas | Hechos inferidos "
+          "| Hipótesis probadas | Memoria (candidatos / hechos) |")
+    print("|---|---|---|---|---|---|---|---|")
+    for modo, nombre, r in resultados:
+        print(f"| {modo} | {nombre} | {r['nodos_generados']:.1f} | {r['reglas_evaluadas']:.1f} "
+              f"| {r['reglas_disparadas']:.1f} | {r['hechos_inferidos']:.1f} | {r['hipotesis_probadas']:.1f} "
+              f"| {r['max_candidatos']:.0f} / {r['max_hechos']:.1f} |")
 
 
 def main():

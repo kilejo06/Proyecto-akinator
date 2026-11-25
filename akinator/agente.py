@@ -1,4 +1,6 @@
 """Estado, acciones y recompensas del agente."""
+import math
+
 from motor_inferencia import encadenamiento_adelante, filtrar_candidatos
 
 PUNTOS_ACIERTO = 100
@@ -23,6 +25,13 @@ class Estado:
         # sí = +1, no = -1, no sé = 0; para elegir la hipótesis más probable
         self.puntajes = {nombre: 0 for nombre in nombres_candidatos}
         self.acerto = False
+        self.ultimas_evaluadas = []
+        self.candidatos_iniciales = len(self.candidatos)
+        self.metricas = {
+            "reglas_evaluadas": 0, "reglas_disparadas": 0, "hechos_inferidos": 0,
+            "nodos_generados": 0, "hipotesis_probadas": 0,
+            "max_candidatos": len(self.candidatos), "max_hechos": 0, "tiempo": 0.0,
+        }
 
 
 def crear_estado(base, limite_preguntas=LIMITE_PREGUNTAS):
@@ -60,7 +69,13 @@ def procesar_respuesta(estado, base, atributo, respuesta):
     estado.hechos_conocidos[atributo] = valor
     for candidato in estado.candidatos:
         estado.puntajes[candidato] += 1 if base.candidatos[candidato][atributo] == valor else -1
-    estado.hechos_conocidos, activadas = encadenamiento_adelante(estado.hechos_conocidos, base.reglas)
+    estado.hechos_conocidos, activadas, evaluadas = encadenamiento_adelante(estado.hechos_conocidos, base.reglas)
+    metricas = estado.metricas
+    metricas["reglas_evaluadas"] += len(evaluadas)
+    estado.ultimas_evaluadas = evaluadas
+    metricas["reglas_disparadas"] += len(activadas)
+    metricas["hechos_inferidos"] += len(activadas)
+    metricas["max_hechos"] = max(metricas["max_hechos"], len(estado.hechos_conocidos))
     estado.candidatos, descartados = filtrar_candidatos(estado.candidatos, base.candidatos, estado.hechos_conocidos)
     return activadas, descartados
 
@@ -99,3 +114,11 @@ def debe_parar(estado, base):
     if len(estado.candidatos) > 1 and not atributos_utiles(estado, base):
         return SIN_PREGUNTAS_UTILES
     return None
+
+
+def resumen_metricas(estado, motivo):
+    """Todas las métricas de la partida en un solo diccionario."""
+    minimo = math.ceil(math.log2(estado.candidatos_iniciales)) if estado.candidatos_iniciales > 1 else 0
+    return {**estado.metricas, "preguntas": estado.num_preguntas, "puntaje": estado.puntos,
+            "minimo_teorico": minimo, "optima": estado.acerto and estado.num_preguntas <= minimo,
+            "encontro": estado.acerto, "motivo": motivo}

@@ -1,6 +1,5 @@
 """Elegir la mejor pregunta."""
 import math
-import random
 
 from agente import atributos_utiles
 
@@ -25,6 +24,7 @@ def heuristica_mitad(estado, base, pesos=None):
     utiles = atributos_utiles(estado, base)
     if not utiles:
         return None
+    estado.metricas["nodos_generados"] += len(utiles)
 
     def desbalance(atributo):
         si, no = contar_division(atributo, estado.candidatos, base.candidatos, pesos)
@@ -37,6 +37,7 @@ def heuristica_entropia(estado, base, pesos=None):
     utiles = atributos_utiles(estado, base)
     if not utiles:
         return None
+    estado.metricas["nodos_generados"] += len(utiles)
 
     def ganancia(atributo):
         si, no = contar_division(atributo, estado.candidatos, base.candidatos, pesos)
@@ -45,13 +46,7 @@ def heuristica_entropia(estado, base, pesos=None):
     return max(utiles, key=ganancia)
 
 
-def heuristica_aleatoria(estado, base, pesos=None, azar=random):
-    utiles = atributos_utiles(estado, base)
-    return azar.choice(utiles) if utiles else None
-
-
 HEURISTICAS = {
     "mitad": heuristica_mitad,
     "entropia": heuristica_entropia,
-    "aleatoria": heuristica_aleatoria,
 }

@@ -24,7 +24,7 @@ def leer_json(nombre):
 def completar_candidato(hechos, atributos, reglas):
     # Mundo cerrado: lo no definido es False; lo no deducido también
     completo = {a: bool(hechos.get(a, False)) for a in atributos}
-    completo, _ = encadenamiento_adelante(completo, reglas)
+    completo, _, _ = encadenamiento_adelante(completo, reglas)
     for regla in reglas:
         completo.setdefault(regla["entonces"], False)
     return completo
