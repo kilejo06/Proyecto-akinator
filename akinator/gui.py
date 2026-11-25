@@ -8,11 +8,16 @@ import ajustes as config
 from agente import SIN_CANDIDATOS
 from base_conocimiento import cargar_base, leer_json
 from gui_dibujo import FONDOS, ORO, TINTA, aclarar, dibujar_fondo, dibujar_mago, mezclar, rect_redondo
-from heuristica import HEURISTICAS
 from partida import Partida
 from utils import nombre_legible, texto_regla
 
 MODOS = (("animales", "Animales"), ("paises", "Países"), ("mixto", "Mixto"))
+OPCIONES_METODO = (("heuristica", "Heurística"), ("adelante", "Adelante"), ("atras", "Atrás"))
+AYUDA_METODO = {
+    "heuristica": "Elijo cada pregunta con una heurística.",
+    "adelante": "Pregunto en el orden de los datos y deduzco con las reglas.",
+    "atras": "Parto de una hipótesis y pregunto lo necesario para confirmarla.",
+}
 OPCIONES_HEURISTICA = (("mitad", "Mitad"), ("entropia", "Entropía"), ("aleatoria", "Aleatoria"))
 OPCIONES_FONDO = (("noche", "Noche"), ("atardecer", "Atardecer"), ("oceano", "Océano"))
 AYUDA_HEURISTICA = {
@@ -160,7 +165,7 @@ class Akinator(tk.Tk):
         self.base = cargar_base(modo)
         self.total = len(self.base.candidatos)
         a = self.ajustes
-        self.partida = Partida(self.base, HEURISTICAS[a["heuristica"]], a["limite"], a["umbral"])
+        self.partida = Partida(self.base, a["metodo"], a["heuristica"], a["limite"])
         self.razonamiento = []
         self.siguiente()
 
@@ -398,10 +403,10 @@ class Akinator(tk.Tk):
                      outline=aclarar(panel, 1.8), width=2, tags="ui")
         a = self.ajustes
         filas = [
-            ("Heurística", "Cómo elijo la próxima pregunta", "selector", "heuristica", OPCIONES_HEURISTICA),
+            ("Método de razonamiento", "", "selector", "metodo", OPCIONES_METODO),
+            ("Heurística", "Solo se usa con el método Heurística", "selector", "heuristica",
+             OPCIONES_HEURISTICA),
             ("Límite de preguntas", "Preguntas que puedo hacer antes de rendirme", "contador", "limite", (5, 40)),
-            ("Umbral de confirmación", "Confirmo mi hipótesis con tantos candidatos o menos",
-             "contador", "umbral", (0, 10)),
             ("Fondo", "El escenario de la partida", "selector", "fondo", OPCIONES_FONDO),
             ("Mostrar razonamiento", "Reglas activadas y candidatos descartados en cada respuesta", "interruptor",
              "razonamiento", None),
@@ -412,7 +417,9 @@ class Akinator(tk.Tk):
         for numero, (titulo, ayuda, tipo, clave, datos) in enumerate(filas):
             y = 0.19 * h + numero * alto_fila
             self.texto(0.16 * w, y + 0.012 * h, titulo, 17, BLANCO, True, "w")
-            ayuda_texto = AYUDA_HEURISTICA[a["heuristica"]] if clave == "heuristica" else ayuda
+            ayuda_texto = {"metodo": AYUDA_METODO[a["metodo"]],
+                           "heuristica": AYUDA_HEURISTICA[a["heuristica"]]
+                           if a["metodo"] == "heuristica" else ayuda}.get(clave, ayuda)
             self.texto(0.16 * w, y + 0.034 * h, ayuda_texto, 11, aclarar(FONDOS[a["fondo"]]["brillo"], 0.9), False,
                        "nw", 0.40 * w)
             getattr(self, "control_" + tipo)(y, clave, datos)

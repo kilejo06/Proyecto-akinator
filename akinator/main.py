@@ -2,15 +2,14 @@
 from agente import LIMITE_PREGUNTAS, SIN_CANDIDATOS
 from base_conocimiento import MODOS, cargar_base
 from heuristica import HEURISTICAS
-from partida import UMBRAL_ATRAS, Partida
+from partida import METODOS, Partida
 from utils import (confirmar_adivinanza, imprimir_traza, pedir_opcion, pedir_respuesta,
                    pedir_si_no)
 
 
-def jugar(base, heuristica, responder, confirmar, mostrar=None, limite_preguntas=LIMITE_PREGUNTAS,
-          umbral_atras=UMBRAL_ATRAS):
+def jugar(base, metodo, heuristica, responder, confirmar, mostrar=None, limite_preguntas=LIMITE_PREGUNTAS):
     """responder(atributo, pregunta) -> 'si'/'no'/'no_se'; confirmar(candidato) -> bool."""
-    partida = Partida(base, heuristica, limite_preguntas, umbral_atras)
+    partida = Partida(base, metodo, heuristica, limite_preguntas)
     while True:
         accion = partida.siguiente()
         if accion["tipo"] == "fin":
@@ -41,13 +40,17 @@ def main():
     nombres_heuristicas = list(HEURISTICAS)
     while True:
         modo = MODOS[pedir_opcion("Modo de juego", ["Animales", "Países", "Mixto"])]
-        heuristica = HEURISTICAS[nombres_heuristicas[pedir_opcion(
-            "Heurística para elegir preguntas", ["Mitad", "Entropía", "Aleatoria"])]]
+        metodo = METODOS[pedir_opcion("Método de razonamiento", [
+            "Selección por heurística", "Encadenamiento hacia adelante", "Encadenamiento hacia atrás"])]
+        heuristica = "mitad"
+        if metodo == "heuristica":
+            heuristica = nombres_heuristicas[pedir_opcion(
+                "Heurística para elegir preguntas", ["Mitad", "Entropía", "Aleatoria"])]
         explicar = pedir_si_no("¿Activar el modo explicación?")
 
         print("\nPiensa en algo y responde sí, no o no sé.\n")
         base = cargar_base(modo)
-        estado, motivo = jugar(base, heuristica, lambda _, pregunta: pedir_respuesta(pregunta),
+        estado, motivo = jugar(base, metodo, heuristica, lambda _, pregunta: pedir_respuesta(pregunta),
                                confirmar_adivinanza, imprimir_traza if explicar else None)
         mostrar_resultado(estado, motivo)
         if not pedir_si_no("\n¿Jugar otra vez?"):

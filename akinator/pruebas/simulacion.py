@@ -9,12 +9,16 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from base_conocimiento import MODOS, cargar_base
-from heuristica import HEURISTICAS
 from main import jugar
 
 SEMILLA = 42
 REPETICIONES_CON_RUIDO = 5
 PROB_NO_SE = 0.3
+METODOS_SIMULADOS = (("Heurística mitad", "heuristica", "mitad"),
+                     ("Heurística entropía", "heuristica", "entropia"),
+                     ("Heurística aleatoria", "heuristica", "aleatoria"),
+                     ("Encadenamiento adelante", "adelante", "mitad"),
+                     ("Encadenamiento atrás", "atras", "mitad"))
 
 
 def usuario_automatico(base, secreto, azar, prob_no_se=0.0, mentir_en=None):
@@ -31,7 +35,7 @@ def usuario_automatico(base, secreto, azar, prob_no_se=0.0, mentir_en=None):
     return responder
 
 
-def simular(modo, heuristica, repeticiones=1, prob_no_se=0.0, mentir=False):
+def simular(modo, metodo, heuristica, repeticiones=1, prob_no_se=0.0, mentir=False):
     azar = random.Random(SEMILLA)
     random.seed(SEMILLA)
     base = cargar_base(modo)
@@ -40,7 +44,7 @@ def simular(modo, heuristica, repeticiones=1, prob_no_se=0.0, mentir=False):
         for _ in range(repeticiones):
             mentir_en = azar.randint(0, 5) if mentir else None
             responder = usuario_automatico(base, secreto, azar, prob_no_se, mentir_en)
-            estado, _ = jugar(base, heuristica, responder, lambda c, s=secreto: c == s)
+            estado, _ = jugar(base, metodo, heuristica, responder, lambda c, s=secreto: c == s)
             partidas += 1
             aciertos += estado.acerto
             preguntas += estado.num_preguntas
@@ -51,11 +55,11 @@ def simular(modo, heuristica, repeticiones=1, prob_no_se=0.0, mentir=False):
 
 def imprimir_tabla(titulo, **opciones):
     print(f"\n{titulo}\n")
-    print("| Modo | Heurística | % aciertos | Promedio preguntas | Puntaje promedio |")
+    print("| Modo | Método | % aciertos | Promedio preguntas | Puntaje promedio |")
     print("|---|---|---|---|---|")
     for modo in MODOS:
-        for nombre, heuristica in HEURISTICAS.items():
-            r = simular(modo, heuristica, **opciones)
+        for nombre, metodo, heuristica in METODOS_SIMULADOS:
+            r = simular(modo, metodo, heuristica, **opciones)
             print(f"| {modo} | {nombre} | {r['aciertos']:.1f} | {r['preguntas']:.2f} | {r['puntos']:.1f} |")
 
 

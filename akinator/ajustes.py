@@ -3,12 +3,13 @@ import json
 import os
 
 RUTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ajustes.json")
+METODOS_VALIDOS = ("heuristica", "adelante", "atras")
 HEURISTICAS_VALIDAS = ("mitad", "entropia", "aleatoria")
 FONDOS_VALIDOS = ("noche", "atardecer", "oceano")
 POR_DEFECTO = {
+    "metodo": "heuristica",
     "heuristica": "mitad",
     "limite": 20,
-    "umbral": 3,
     "fondo": "noche",
     "razonamiento": True,
     "animaciones": True,
@@ -26,12 +27,13 @@ def cargar():
     for clave, valor in guardados.items():
         if clave in ajustes and type(valor) is type(ajustes[clave]):
             ajustes[clave] = valor
+    if ajustes["metodo"] not in METODOS_VALIDOS:
+        ajustes["metodo"] = POR_DEFECTO["metodo"]
     if ajustes["heuristica"] not in HEURISTICAS_VALIDAS:
         ajustes["heuristica"] = POR_DEFECTO["heuristica"]
     if ajustes["fondo"] not in FONDOS_VALIDOS:
         ajustes["fondo"] = POR_DEFECTO["fondo"]
     ajustes["limite"] = max(1, min(40, ajustes["limite"]))
-    ajustes["umbral"] = max(0, min(10, ajustes["umbral"]))
     return ajustes
 
 

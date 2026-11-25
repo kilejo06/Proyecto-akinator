@@ -1,22 +1,26 @@
 """Partida paso a paso: quien la maneja decide cuándo llega cada respuesta."""
-from agente import (ACERTO, LIMITE, LIMITE_PREGUNTAS, SIN_CANDIDATOS, adivinar, crear_estado,
-                    debe_parar, elegir_hipotesis, procesar_respuesta)
+from agente import (ACERTO, LIMITE, LIMITE_PREGUNTAS, SIN_CANDIDATOS, adivinar, atributos_utiles,
+                    crear_estado, debe_parar, elegir_hipotesis, procesar_respuesta)
+from heuristica import HEURISTICAS
 from motor_inferencia import encadenamiento_atras
 
-UMBRAL_ATRAS = 3
+METODOS = ("heuristica", "adelante", "atras")
 
 
-def elegir_atributo(estado, base, heuristica, hipotesis, umbral_atras):
-    if len(estado.candidatos) <= umbral_atras:
+def elegir_atributo(estado, base, metodo, heuristica, hipotesis):
+    if metodo == "atras":
         return encadenamiento_atras(hipotesis, estado, base)
-    return heuristica(estado, base)
+    if metodo == "adelante":
+        utiles = atributos_utiles(estado, base)
+        return utiles[0] if utiles else None
+    return HEURISTICAS[heuristica](estado, base)
 
 
 class Partida:
-    def __init__(self, base, heuristica, limite_preguntas=LIMITE_PREGUNTAS, umbral_atras=UMBRAL_ATRAS):
+    def __init__(self, base, metodo="heuristica", heuristica="mitad", limite_preguntas=LIMITE_PREGUNTAS):
         self.base = base
+        self.metodo = metodo
         self.heuristica = heuristica
-        self.umbral_atras = umbral_atras
         self.estado = crear_estado(base, limite_preguntas)
         self.accion = None
         self.motivo = None
@@ -34,8 +38,7 @@ class Partida:
         atributo = None
         # Al llegar al límite se hace un último intento con la mejor hipótesis
         if motivo is None:
-            atributo = elegir_atributo(self.estado, self.base, self.heuristica, hipotesis,
-                                       self.umbral_atras)
+            atributo = elegir_atributo(self.estado, self.base, self.metodo, self.heuristica, hipotesis)
         self.motivo_intento = motivo
         if atributo is None:
             self.accion = {"tipo": "adivinar", "candidato": hipotesis}
