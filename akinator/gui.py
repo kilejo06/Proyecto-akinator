@@ -7,6 +7,7 @@ import tkinter as tk
 import ajustes as config
 from agente import SIN_CANDIDATOS
 from base_conocimiento import cargar_base, leer_json
+from gui_reproduccion import ReproduccionMixin
 from gui_dibujo import FONDOS, ORO, TINTA, aclarar, dibujar_fondo, dibujar_mago, mezclar, rect_redondo
 from partida import Partida
 from utils import nombre_legible, texto_regla
@@ -18,17 +19,16 @@ AYUDA_METODO = {
     "adelante": "Pregunto en el orden de los datos y deduzco con las reglas.",
     "atras": "Parto de una hipótesis y pregunto lo necesario para confirmarla.",
 }
-OPCIONES_HEURISTICA = (("mitad", "Mitad"), ("entropia", "Entropía"), ("aleatoria", "Aleatoria"))
+OPCIONES_HEURISTICA = (("mitad", "Mitad"), ("entropia", "Entropía"))
 OPCIONES_FONDO = (("noche", "Noche"), ("atardecer", "Atardecer"), ("oceano", "Océano"))
 AYUDA_HEURISTICA = {
     "mitad": "Parte a los candidatos lo más cerca de la mitad.",
     "entropia": "Elige la pregunta que más información aporta.",
-    "aleatoria": "Elige preguntas al azar. Sirve para comparar.",
 }
 VERDE, ROJO, GRIS, BLANCO = "#22c55e", "#ef4444", "#64748b", "#ffffff"
 
 
-class Akinator(tk.Tk):
+class Akinator(ReproduccionMixin, tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Akinator")
@@ -40,6 +40,12 @@ class Akinator(tk.Tk):
         self.vista = "menu"
         self.vista_previa = "menu"
         self.partida = None
+        self.jugador = "yo"
+        self.repro = None
+        self.secreto = ""
+        self.indice = 0
+        self.reproduciendo = False
+        self.velocidad = "normal"
         self.accion = None
         self.base = None
         self.total = 1
@@ -145,18 +151,33 @@ class Akinator(tk.Tk):
         self.texto(w / 2 + 4, 0.13 * h + 4, "AKINATOR", 60, "#0b0630", True)
         self.texto(w / 2, 0.13 * h, "AKINATOR", 60, ORO, True)
         self.texto(w / 2, 0.225 * h, "Piensa en un animal o en un país y yo lo adivinaré", 17)
-        self.mago(w / 2, 0.43 * h, 1.1)
-        self.texto(w / 2, 0.655 * h, "¿Qué tipo de juego quieres?", 19, BLANCO, True)
+        self.mago(w / 2, 0.40 * h, 0.9)
+        for numero, (clave, nombre) in enumerate((("yo", "Yo pienso"), ("agente", "Que juegue el agente"))):
+            x1 = w / 2 - 0.26 * w + numero * 0.265 * w
+            elegido = self.jugador == clave
+            self.boton(x1, 0.585 * h, x1 + 0.255 * w, 0.645 * h, nombre, ORO if elegido else self.secundario(),
+                       lambda c=clave: self.elegir_jugador(c), TINTA if elegido else BLANCO, 14)
+        self.texto(w / 2, 0.685 * h, "¿Qué tipo de juego quieres?", 19, BLANCO, True)
         ancho_tarjeta, hueco = 0.24 * w, 0.025 * w
         inicio = w / 2 - (3 * ancho_tarjeta + 2 * hueco) / 2
         for numero, (clave, nombre) in enumerate(MODOS):
             x1 = inicio + numero * (ancho_tarjeta + hueco)
-            self.boton(x1, 0.70 * h, x1 + ancho_tarjeta, 0.83 * h, nombre, ORO, lambda c=clave: self.empezar(c),
-                       TINTA, 24, f"{self.conteos[clave]} candidatos")
+            self.boton(x1, 0.715 * h, x1 + ancho_tarjeta, 0.835 * h, nombre, ORO,
+                       lambda c=clave: self.elegir_modo(c), TINTA, 24, f"{self.conteos[clave]} candidatos")
         self.boton(w / 2 - 0.17 * w, 0.89 * h, w / 2 - 0.01 * w, 0.96 * h, "Ajustes", self.secundario(),
                    self.abrir_ajustes, tamano=15)
         self.boton(w / 2 + 0.01 * w, 0.89 * h, w / 2 + 0.17 * w, 0.96 * h, "Salir", self.secundario(),
                    self.destroy, tamano=15)
+
+    def elegir_jugador(self, jugador):
+        self.jugador = jugador
+        self.refrescar()
+
+    def elegir_modo(self, modo):
+        if self.jugador == "agente":
+            self.abrir_secreto(modo)
+        else:
+            self.empezar(modo)
 
     # --- Partida ----------------------------------------------------------------
 
@@ -232,6 +253,7 @@ class Akinator(tk.Tk):
 
     def ir_menu(self):
         self.cancelar_pausa()
+        self.detener_reproduccion()
         self.vista, self.expresion = "menu", "normal"
         self.refrescar()
 
@@ -243,19 +265,22 @@ class Akinator(tk.Tk):
                 self.responder(valor)
         elif self.vista == "adivinar" and tecla in ("s", "y", "n"):
             self.confirmar(tecla != "n")
-        if tecla == "escape" and self.vista in ("pregunta", "adivinar", "fin", "ajustes"):
+        elif self.vista == "reproduccion":
+            self.al_teclear_reproduccion(tecla)
+        if tecla == "escape" and self.vista in ("pregunta", "adivinar", "fin", "ajustes", "elegir_secreto",
+                                                "reproduccion"):
             self.volver() if self.vista == "ajustes" else self.ir_menu()
 
     # --- Escena de juego -------------------------------------------------------
 
-    def barra_superior(self, centro):
+    def barra_superior(self, centro, puntos=None):
         w, h = self.ancho, self.alto
         self.boton(0.02 * w, 0.03 * h, 0.14 * w, 0.09 * h, "Menú", self.secundario(), self.ir_menu, tamano=13)
         self.boton(0.86 * w, 0.03 * h, 0.98 * w, 0.09 * h, "Ajustes", self.secundario(), self.abrir_ajustes,
                    tamano=13)
         self.texto(w / 2, 0.06 * h, centro, 18, BLANCO, True)
-        if self.ajustes["puntaje"] and self.partida:
-            self.texto(0.80 * w, 0.06 * h, f"Puntaje: {self.partida.estado.puntos}", 13, "#fde68a", True, "e")
+        if self.ajustes["puntaje"] and puntos is not None:
+            self.texto(0.80 * w, 0.06 * h, f"Puntaje: {puntos}", 13, "#fde68a", True, "e")
 
     def burbuja(self, lineas):
         """lineas: lista de (texto, tamaño, color). El mago queda a la izquierda de la burbuja."""
@@ -271,18 +296,18 @@ class Akinator(tk.Tk):
             y = y1 + (numero + 1) * (y2 - y1) / (len(lineas) + 1)
             self.texto((x1 + x2) / 2, y, texto, tamano, color, tamano > 18, ancho=(x2 - x1) - 0.06 * w)
 
-    def fila_botones(self, y1, y2, definiciones):
+    def fila_botones(self, y1, y2, definiciones, tamano=20):
         w = self.ancho
         inicio, fin, hueco = 0.38 * w, 0.95 * w, 0.015 * w
         ancho = (fin - inicio - hueco * (len(definiciones) - 1)) / len(definiciones)
         for numero, (texto, color, comando) in enumerate(definiciones):
             x1 = inicio + numero * (ancho + hueco)
-            self.boton(x1, y1, x1 + ancho, y2, texto, color, comando, tamano=20)
+            self.boton(x1, y1, x1 + ancho, y2, texto, color, comando, tamano=tamano)
 
-    def barra_progreso(self):
+    def barra_progreso(self, candidatos=None):
         w, h = self.ancho, self.alto
-        estado = self.partida.estado
-        certeza = 1 - (len(estado.candidatos) - 1) / max(1, self.total - 1)
+        candidatos = self.partida.estado.candidatos if candidatos is None else candidatos
+        certeza = 1 - (len(candidatos) - 1) / max(1, self.total - 1)
         certeza = max(0.0, min(1.0, certeza))
         self.texto(0.08 * w, 0.765 * h, "Qué tan cerca estoy de adivinar", 13, BLANCO, False, "w")
         x1, x2, y1, y2 = 0.08 * w, 0.92 * w, 0.79 * h, 0.82 * h
@@ -291,35 +316,36 @@ class Akinator(tk.Tk):
         if certeza > 0.02:
             rect_redondo(self.lienzo, x1, y1, x1 + (x2 - x1) * certeza, y2, (y2 - y1) / 2, fill=ORO, outline="",
                          tags="ui")
-        self.texto(x2, 0.765 * h, f"{int(certeza * 100)}%   ·   quedan {len(estado.candidatos)} candidatos",
+        self.texto(x2, 0.765 * h, f"{int(certeza * 100)}%   ·   quedan {len(candidatos)} candidatos",
                    13, BLANCO, False, "e")
 
-    def panel_razonamiento(self):
+    def panel_razonamiento(self, datos=None, candidatos=None, puntos=None):
         if not self.ajustes["razonamiento"]:
             return
         w, h = self.ancho, self.alto
         panel = FONDOS[self.ajustes["fondo"]]["panel"]
         rect_redondo(self.lienzo, 0.05 * w, 0.84 * h, 0.95 * w, 0.985 * h, 18 * self.escala,
                      fill=panel, outline=aclarar(panel, 1.8), width=2, tags="ui")
-        estado = self.partida.estado
-        datos = self.razonamiento
+        if candidatos is None:
+            estado = self.partida.estado
+            datos, candidatos, puntos = self.razonamiento, estado.candidatos, estado.puntos
         if not datos:
             self.texto(0.07 * w, 0.912 * h, "Aquí verás qué reglas se activan, a quién descarto, "
                        "quiénes quedan y cómo cambia el puntaje.", 12, BLANCO, False, "w", 0.86 * w)
             return
         cabecera = datos["titulo"]
         if self.ajustes["puntaje"]:
-            cabecera += f"   ·   Puntaje {datos['delta']:+d} (total {estado.puntos})".replace("-", "−")
+            cabecera += f"   ·   Puntaje {datos['delta']:+d} (total {puntos})".replace("-", "−")
         self.texto(0.07 * w, 0.862 * h, cabecera, 12, "#fde68a", True, "w", 0.86 * w)
         if datos["reglas"]:
             self.texto(0.07 * w, 0.893 * h, "Reglas activadas: " + datos["reglas"], 11, "#a5f3fc", False, "w",
                        0.86 * w)
         descartados = self.lista_nombres(datos["descartados"], "ninguno")
-        restantes = self.lista_nombres(estado.candidatos, "ninguno")
+        restantes = self.lista_nombres(candidatos, "ninguno")
         y = 0.925 * h
         self.texto(0.07 * w, y, f"Descartados ahora ({len(datos['descartados'])}): {descartados}", 11,
                    "#fca5a5", False, "nw", 0.41 * w)
-        self.texto(0.52 * w, y, f"Candidatos restantes ({len(estado.candidatos)}): {restantes}", 11,
+        self.texto(0.52 * w, y, f"Candidatos restantes ({len(candidatos)}): {restantes}", 11,
                    "#86efac", False, "nw", 0.41 * w)
 
     def lista_nombres(self, nombres, vacio, maximo=8):
@@ -331,7 +357,7 @@ class Akinator(tk.Tk):
 
     def vista_pregunta(self):
         estado = self.partida.estado
-        self.barra_superior(f"Pregunta {estado.num_preguntas + 1} de {estado.limite_preguntas}")
+        self.barra_superior(f"Pregunta {estado.num_preguntas + 1} de {estado.limite_preguntas}", estado.puntos)
         self.burbuja([(self.mensaje_temporal or self.accion["pregunta"], 26, TINTA)])
         self.fila_botones(0.57 * self.alto, 0.71 * self.alto, [
             ("Sí", VERDE, lambda: self.responder("si")), ("No", ROJO, lambda: self.responder("no")),
@@ -340,7 +366,7 @@ class Akinator(tk.Tk):
         self.panel_razonamiento()
 
     def vista_adivinar(self):
-        self.barra_superior("¡Creo que ya lo sé!")
+        self.barra_superior("¡Creo que ya lo sé!", self.partida.estado.puntos)
         if self.mensaje_temporal:
             self.burbuja([(self.mensaje_temporal, 26, TINTA)])
         else:
@@ -355,7 +381,7 @@ class Akinator(tk.Tk):
     def vista_fin(self):
         estado = self.partida.estado
         w, h = self.ancho, self.alto
-        self.barra_superior("Fin de la partida")
+        self.barra_superior("Fin de la partida", estado.puntos)
         if estado.acerto:
             titulo = "¡Lo adiviné!"
             detalle = f"Era {nombre_legible(self.ultimo_candidato)}. ¡Qué buena partida!"
@@ -376,6 +402,7 @@ class Akinator(tk.Tk):
     def abrir_ajustes(self):
         if self.bloqueado:
             return
+        self.detener_reproduccion()
         if self.vista != "ajustes":
             self.vista_previa = self.vista
         self.vista = "ajustes"
