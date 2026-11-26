@@ -7,6 +7,7 @@ import tkinter as tk
 import ajustes as config
 from agente import SIN_CANDIDATOS
 from base_conocimiento import cargar_base, leer_json
+from gui_comparacion import ComparacionMixin
 from gui_paneles import PanelesMixin
 from gui_reproduccion import ReproduccionMixin
 from gui_dibujo import FONDOS, ORO, TINTA, aclarar, dibujar_fondo, dibujar_mago, mezclar, rect_redondo
@@ -29,7 +30,7 @@ AYUDA_HEURISTICA = {
 VERDE, ROJO, GRIS, BLANCO = "#22c55e", "#ef4444", "#64748b", "#ffffff"
 
 
-class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
+class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Akinator")
@@ -54,6 +55,17 @@ class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
         self.bloqueado = False
         self.mensaje_temporal = None
         self.pestana = "reglas"
+        self.cmp_modo = "animales"
+        self.cmp_usuario = "sin_errores"
+        self.cmp_secreto = None
+        self.cmp_filas = []
+        self.cmp_estado = ""
+        self.cmp_metrica = "preguntas"
+        self.cmp_corriendo = False
+        self.cmp_timer = None
+        self.cmp_pendientes = []
+        self.cmp_trabajo = None
+        self.cmp_bases = {}
         self.cadena_n = 0
         self.timer_cadena = None
         self.fade = None
@@ -171,10 +183,10 @@ class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
             x1 = inicio + numero * (ancho_tarjeta + hueco)
             self.boton(x1, 0.715 * h, x1 + ancho_tarjeta, 0.835 * h, nombre, ORO,
                        lambda c=clave: self.elegir_modo(c), TINTA, 24, f"{self.conteos[clave]} candidatos")
-        self.boton(w / 2 - 0.17 * w, 0.89 * h, w / 2 - 0.01 * w, 0.96 * h, "Ajustes", self.secundario(),
-                   self.abrir_ajustes, tamano=15)
-        self.boton(w / 2 + 0.01 * w, 0.89 * h, w / 2 + 0.17 * w, 0.96 * h, "Salir", self.secundario(),
-                   self.destroy, tamano=15)
+        for numero, (texto, comando) in enumerate((("Comparar", self.abrir_comparacion),
+                                                   ("Ajustes", self.abrir_ajustes), ("Salir", self.destroy))):
+            x1 = w / 2 - 0.255 * w + numero * 0.175 * w
+            self.boton(x1, 0.89 * h, x1 + 0.165 * w, 0.96 * h, texto, self.secundario(), comando, tamano=15)
 
     def elegir_jugador(self, jugador):
         self.jugador = jugador
@@ -249,6 +261,7 @@ class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
     def ir_menu(self):
         self.cancelar_pausa()
         self.detener_reproduccion()
+        self.detener_comparacion()
         self.vista, self.expresion = "menu", "normal"
         self.refrescar()
 
@@ -263,7 +276,7 @@ class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
         elif self.vista == "reproduccion":
             self.al_teclear_reproduccion(tecla)
         if tecla == "escape" and self.vista in ("pregunta", "adivinar", "fin", "ajustes", "elegir_secreto",
-                                                "reproduccion"):
+                                                "reproduccion", "comparacion"):
             self.volver() if self.vista == "ajustes" else self.ir_menu()
 
     # --- Escena de juego -------------------------------------------------------
@@ -379,6 +392,7 @@ class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
         if self.bloqueado:
             return
         self.detener_reproduccion()
+        self.detener_comparacion()
         if self.vista != "ajustes":
             self.vista_previa = self.vista
         self.vista = "ajustes"
