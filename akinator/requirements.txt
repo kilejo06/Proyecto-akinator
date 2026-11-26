@@ -1,0 +1,3 @@
+# El proyecto solo usa la librería estándar de Python 3.10+ (json, math, random, time, csv, tkinter).
+# Para abrir el notebook akinator.ipynb:
+notebook
