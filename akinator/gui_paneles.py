@@ -197,8 +197,10 @@ class PanelesMixin:
         columnas = 7 if len(nombres) <= 35 else 10
         filas = math.ceil(len(nombres) / columnas)
         x = x1
+        # Solo el encadenamiento hacia atrás usa la hipótesis para elegir preguntas
+        dorado = "hipótesis actual" if paso["metodo"] == "atras" else "más probable"
         for color, texto in (("#15803d", "activo"), (ROJO_DESCARTE, "descartado ahora"),
-                             (GRIS_DESCARTE, "descartado antes"), (ORO, "hipótesis actual")):
+                             (GRIS_DESCARTE, "descartado antes"), (ORO, dorado)):
             self.lienzo.create_rectangle(x, y1 + 3, x + 12 * self.escala, y1 + 3 + 12 * self.escala,
                                          fill=color, outline="", tags="ui")
             x += 18 * self.escala

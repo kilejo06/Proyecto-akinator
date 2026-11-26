@@ -25,7 +25,7 @@
     "id": "A4",
     "si": [
       "tiene_aletas",
-      "no:da_leche"
+      "tiene_escamas"
     ],
     "entonces": "es_pez"
   },
@@ -151,7 +151,8 @@
     "si": [
       "es_invertebrado",
       "es_venenoso",
-      "no:vuela"
+      "no:vuela",
+      "no:vive_en_agua"
     ],
     "entonces": "es_aracnido"
   },
@@ -161,7 +162,7 @@
       "es_mamifero",
       "es_herbivoro",
       "vive_en_selva",
-      "no:tiene_cuatro_patas"
+      "tiene_pelo"
     ],
     "entonces": "es_primate"
   },

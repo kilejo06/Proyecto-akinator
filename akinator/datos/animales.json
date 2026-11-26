@@ -285,7 +285,7 @@
     "vive_en_frio": false,
     "es_carnivoro": false,
     "es_herbivoro": true,
-    "tiene_cuatro_patas": false,
+    "tiene_cuatro_patas": true,
     "es_domestico": false,
     "es_grande": false,
     "es_pequeno": true,
@@ -382,7 +382,7 @@
     "tiene_pelo": false,
     "tiene_plumas": true,
     "tiene_escamas": false,
-    "tiene_aletas": false,
+    "tiene_aletas": true,
     "da_leche": false,
     "pone_huevos": true,
     "vuela": false,
@@ -647,7 +647,7 @@
     "es_grande": false,
     "es_pequeno": true,
     "vive_en_selva": true,
-    "es_venenoso": false,
+    "es_venenoso": true,
     "es_rapido": false
   },
   "oso_pardo": {
@@ -941,7 +941,7 @@
     "es_grande": false,
     "es_pequeno": false,
     "vive_en_selva": false,
-    "es_venenoso": false,
+    "es_venenoso": true,
     "es_rapido": false
   },
   "abeja": {
@@ -1020,7 +1020,7 @@
     "vive_en_frio": false,
     "es_carnivoro": false,
     "es_herbivoro": true,
-    "tiene_cuatro_patas": false,
+    "tiene_cuatro_patas": true,
     "es_domestico": false,
     "es_grande": true,
     "es_pequeno": false,
