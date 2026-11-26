@@ -7,6 +7,7 @@ import tkinter as tk
 import ajustes as config
 from agente import SIN_CANDIDATOS
 from base_conocimiento import cargar_base, leer_json
+from gui_paneles import PanelesMixin
 from gui_reproduccion import ReproduccionMixin
 from gui_dibujo import FONDOS, ORO, TINTA, aclarar, dibujar_fondo, dibujar_mago, mezclar, rect_redondo
 from partida import Partida
@@ -28,7 +29,7 @@ AYUDA_HEURISTICA = {
 VERDE, ROJO, GRIS, BLANCO = "#22c55e", "#ef4444", "#64748b", "#ffffff"
 
 
-class Akinator(ReproduccionMixin, tk.Tk):
+class Akinator(PanelesMixin, ReproduccionMixin, tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Akinator")
@@ -52,7 +53,10 @@ class Akinator(ReproduccionMixin, tk.Tk):
         self.expresion = "normal"
         self.bloqueado = False
         self.mensaje_temporal = None
-        self.razonamiento = []
+        self.pestana = "reglas"
+        self.cadena_n = 0
+        self.timer_cadena = None
+        self.fade = None
         self.ultimo_candidato = ""
         self.pendiente = None
         self.refresco = None
@@ -88,6 +92,9 @@ class Akinator(ReproduccionMixin, tk.Tk):
 
     def refrescar(self):
         self.refresco = None
+        if self.fade is not None:
+            self.after_cancel(self.fade)
+            self.fade = None
         ancho, alto = self.lienzo.winfo_width(), self.lienzo.winfo_height()
         if ancho < 100 or alto < 100:
             return
@@ -187,7 +194,7 @@ class Akinator(ReproduccionMixin, tk.Tk):
         self.total = len(self.base.candidatos)
         a = self.ajustes
         self.partida = Partida(self.base, a["metodo"], a["heuristica"], a["limite"])
-        self.razonamiento = []
+        self.detener_cadena()
         self.siguiente()
 
     def siguiente(self):
@@ -205,29 +212,17 @@ class Akinator(ReproduccionMixin, tk.Tk):
     def responder(self, valor):
         if self.bloqueado or self.vista != "pregunta":
             return
-        estado = self.partida.estado
-        puntos_antes = estado.puntos
-        respondida = self.accion["pregunta"]
-        activadas, descartados = self.partida.responder(valor)
-        etiqueta = {"si": "Sí", "no": "No", "no_se": "No sé"}[valor]
-        self.razonamiento = {"titulo": f"Respondiste «{etiqueta}» a: {respondida}",
-                             "reglas": "; ".join(texto_regla(r) for r in activadas),
-                             "descartados": descartados, "delta": estado.puntos - puntos_antes}
+        self.partida.responder(valor)
         self.pensar(self.siguiente, "Hmm... déjame pensar", "pensando")
 
     def confirmar(self, acerto):
         if self.bloqueado or self.vista != "adivinar":
             return
         self.ultimo_candidato = self.accion["candidato"]
-        puntos_antes = self.partida.estado.puntos
         self.partida.confirmar(acerto)
         if acerto:
-            self.razonamiento = []
             self.siguiente()
         else:
-            self.razonamiento = {"titulo": f"Fallé con {nombre_legible(self.ultimo_candidato)}",
-                                 "reglas": "", "descartados": [self.ultimo_candidato],
-                                 "delta": self.partida.estado.puntos - puntos_antes}
             self.pensar(self.siguiente, "Vaya... déjame intentarlo otra vez", "triste")
 
     def pensar(self, despues, texto, expresion):
@@ -285,24 +280,44 @@ class Akinator(ReproduccionMixin, tk.Tk):
     def burbuja(self, lineas):
         """lineas: lista de (texto, tamaño, color). El mago queda a la izquierda de la burbuja."""
         w, h = self.ancho, self.alto
-        x1, y1, x2, y2 = 0.38 * w, 0.14 * h, 0.95 * w, 0.50 * h
-        self.mago(0.19 * w, 0.46 * h)
+        compacto = self.compacto()
+        if compacto:
+            x1, y1, x2, y2 = 0.24 * w, 0.12 * h, 0.95 * w, 0.385 * h
+            self.mago(0.12 * w, 0.30 * h, 0.55)
+        else:
+            x1, y1, x2, y2 = 0.38 * w, 0.14 * h, 0.95 * w, 0.50 * h
+            self.mago(0.19 * w, 0.46 * h)
+        alto = y2 - y1
+        factor = 0.8 if compacto else 1.0
         rect_redondo(self.lienzo, x1 + 4, y1 + 6, x2 + 4, y2 + 6, 30 * self.escala, fill="#0b0630", outline="",
                      stipple="gray50", tags="ui")
         rect_redondo(self.lienzo, x1, y1, x2, y2, 30 * self.escala, fill=BLANCO, outline="", tags="ui")
-        self.lienzo.create_polygon(x1 + 3, y1 + 0.10 * h, x1 - 0.045 * w, y1 + 0.16 * h, x1 + 3, y1 + 0.20 * h,
-                                   fill=BLANCO, outline="", tags="ui")
+        self.lienzo.create_polygon(x1 + 3, y1 + 0.28 * alto, x1 - 0.045 * w, y1 + 0.44 * alto, x1 + 3,
+                                   y1 + 0.56 * alto, fill=BLANCO, outline="", tags="ui")
         for numero, (texto, tamano, color) in enumerate(lineas):
-            y = y1 + (numero + 1) * (y2 - y1) / (len(lineas) + 1)
-            self.texto((x1 + x2) / 2, y, texto, tamano, color, tamano > 18, ancho=(x2 - x1) - 0.06 * w)
+            y = y1 + (numero + 1) * alto / (len(lineas) + 1)
+            self.texto((x1 + x2) / 2, y, texto, tamano * factor, color, tamano > 18, ancho=(x2 - x1) - 0.06 * w)
 
-    def fila_botones(self, y1, y2, definiciones, tamano=20):
+    def fila_botones(self, y1, y2, definiciones, tamano=20, inicio=0.38, fin=0.95):
         w = self.ancho
-        inicio, fin, hueco = 0.38 * w, 0.95 * w, 0.015 * w
+        inicio, fin, hueco = inicio * w, fin * w, 0.015 * w
         ancho = (fin - inicio - hueco * (len(definiciones) - 1)) / len(definiciones)
-        for numero, (texto, color, comando) in enumerate(definiciones):
+        for numero, (texto, color, comando, *resto) in enumerate(definiciones):
             x1 = inicio + numero * (ancho + hueco)
-            self.boton(x1, y1, x1 + ancho, y2, texto, color, comando, tamano=tamano)
+            self.boton(x1, y1, x1 + ancho, y2, texto, color, comando, resto[0] if resto else BLANCO, tamano)
+
+    def fila_accion(self, definiciones):
+        h = self.alto
+        if self.compacto():
+            self.fila_botones(0.405 * h, 0.475 * h, definiciones, 16, inicio=0.24)
+        else:
+            self.fila_botones(0.57 * h, 0.71 * h, definiciones)
+
+    def cierre_vista(self, decision):
+        if self.compacto():
+            self.panel_detalle(self.partida.historial, len(self.partida.historial) - 1, decision)
+        else:
+            self.barra_progreso()
 
     def barra_progreso(self, candidatos=None):
         w, h = self.ancho, self.alto
@@ -319,51 +334,14 @@ class Akinator(ReproduccionMixin, tk.Tk):
         self.texto(x2, 0.765 * h, f"{int(certeza * 100)}%   ·   quedan {len(candidatos)} candidatos",
                    13, BLANCO, False, "e")
 
-    def panel_razonamiento(self, datos=None, candidatos=None, puntos=None):
-        if not self.ajustes["razonamiento"]:
-            return
-        w, h = self.ancho, self.alto
-        panel = FONDOS[self.ajustes["fondo"]]["panel"]
-        rect_redondo(self.lienzo, 0.05 * w, 0.84 * h, 0.95 * w, 0.985 * h, 18 * self.escala,
-                     fill=panel, outline=aclarar(panel, 1.8), width=2, tags="ui")
-        if candidatos is None:
-            estado = self.partida.estado
-            datos, candidatos, puntos = self.razonamiento, estado.candidatos, estado.puntos
-        if not datos:
-            self.texto(0.07 * w, 0.912 * h, "Aquí verás qué reglas se activan, a quién descarto, "
-                       "quiénes quedan y cómo cambia el puntaje.", 12, BLANCO, False, "w", 0.86 * w)
-            return
-        cabecera = datos["titulo"]
-        if self.ajustes["puntaje"]:
-            cabecera += f"   ·   Puntaje {datos['delta']:+d} (total {puntos})".replace("-", "−")
-        self.texto(0.07 * w, 0.862 * h, cabecera, 12, "#fde68a", True, "w", 0.86 * w)
-        if datos["reglas"]:
-            self.texto(0.07 * w, 0.893 * h, "Reglas activadas: " + datos["reglas"], 11, "#a5f3fc", False, "w",
-                       0.86 * w)
-        descartados = self.lista_nombres(datos["descartados"], "ninguno")
-        restantes = self.lista_nombres(candidatos, "ninguno")
-        y = 0.925 * h
-        self.texto(0.07 * w, y, f"Descartados ahora ({len(datos['descartados'])}): {descartados}", 11,
-                   "#fca5a5", False, "nw", 0.41 * w)
-        self.texto(0.52 * w, y, f"Candidatos restantes ({len(candidatos)}): {restantes}", 11,
-                   "#86efac", False, "nw", 0.41 * w)
-
-    def lista_nombres(self, nombres, vacio, maximo=8):
-        if not nombres:
-            return vacio
-        visibles = ", ".join(nombre_legible(n) for n in nombres[:maximo])
-        resto = len(nombres) - maximo
-        return visibles + (f" y {resto} más" if resto > 0 else "")
-
     def vista_pregunta(self):
         estado = self.partida.estado
         self.barra_superior(f"Pregunta {estado.num_preguntas + 1} de {estado.limite_preguntas}", estado.puntos)
         self.burbuja([(self.mensaje_temporal or self.accion["pregunta"], 26, TINTA)])
-        self.fila_botones(0.57 * self.alto, 0.71 * self.alto, [
+        self.fila_accion([
             ("Sí", VERDE, lambda: self.responder("si")), ("No", ROJO, lambda: self.responder("no")),
             ("No sé", GRIS, lambda: self.responder("no_se"))])
-        self.barra_progreso()
-        self.panel_razonamiento()
+        self.cierre_vista(self.partida.decision)
 
     def vista_adivinar(self):
         self.barra_superior("¡Creo que ya lo sé!", self.partida.estado.puntos)
@@ -372,15 +350,13 @@ class Akinator(ReproduccionMixin, tk.Tk):
         else:
             self.burbuja([("Creo que estás pensando en...", 18, "#6b5fa5"),
                           (nombre_legible(self.accion["candidato"]).upper(), 38, TINTA)])
-        self.fila_botones(0.57 * self.alto, 0.71 * self.alto, [
+        self.fila_accion([
             ("¡Sí, es correcto!", VERDE, lambda: self.confirmar(True)),
             ("No, no es", ROJO, lambda: self.confirmar(False))])
-        self.barra_progreso()
-        self.panel_razonamiento()
+        self.cierre_vista({"metodo": self.ajustes["metodo"], "adivina": self.accion["candidato"]})
 
     def vista_fin(self):
         estado = self.partida.estado
-        w, h = self.ancho, self.alto
         self.barra_superior("Fin de la partida", estado.puntos)
         if estado.acerto:
             titulo = "¡Lo adiviné!"
@@ -393,9 +369,9 @@ class Akinator(ReproduccionMixin, tk.Tk):
         if self.ajustes["puntaje"]:
             resumen += f"   ·   Puntaje final: {estado.puntos}"
         self.burbuja([(titulo, 36, TINTA), (detalle, 17, "#6b5fa5"), (resumen, 15, "#6b5fa5")])
-        self.boton(0.38 * w, 0.57 * h, 0.665 * w, 0.71 * h, "Jugar otra vez", ORO,
-                   lambda: self.empezar(self.base.modo), TINTA, 20)
-        self.boton(0.68 * w, 0.57 * h, 0.95 * w, 0.71 * h, "Menú", self.secundario(), self.ir_menu, tamano=20)
+        self.fila_accion([("Jugar otra vez", ORO, lambda: self.empezar(self.base.modo), TINTA),
+                          ("Menú", self.secundario(), self.ir_menu)])
+        self.cierre_vista(None)
 
     # --- Ajustes ----------------------------------------------------------------
 

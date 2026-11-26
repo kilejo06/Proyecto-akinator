@@ -46,6 +46,15 @@ def heuristica_entropia(estado, base, pesos=None):
     return max(utiles, key=ganancia)
 
 
+def valores_atributos(estado, base, heuristica):
+    """[(atributo, valor)] de mejor a peor: |sí−no| (menor es mejor) o entropía (mayor es mejor)."""
+    valores = []
+    for atributo in atributos_utiles(estado, base):
+        si, no = contar_division(atributo, estado.candidatos, base.candidatos)
+        valores.append((atributo, abs(si - no) if heuristica == "mitad" else entropia(si, no)))
+    return sorted(valores, key=lambda par: par[1], reverse=heuristica != "mitad")
+
+
 HEURISTICAS = {
     "mitad": heuristica_mitad,
     "entropia": heuristica_entropia,

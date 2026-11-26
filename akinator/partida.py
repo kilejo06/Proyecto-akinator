@@ -4,8 +4,8 @@ import time
 from agente import (ACERTO, LIMITE, LIMITE_PREGUNTAS, SIN_CANDIDATOS, adivinar, atributos_utiles,
                     crear_estado, debe_parar, elegir_hipotesis, procesar_respuesta,
                     resumen_metricas)
-from heuristica import HEURISTICAS
-from motor_inferencia import encadenamiento_atras
+from heuristica import HEURISTICAS, valores_atributos
+from motor_inferencia import encadenamiento_atras, explicar_atras
 
 METODOS = ("heuristica", "adelante", "atras")
 
@@ -21,8 +21,11 @@ def elegir_atributo(estado, base, metodo, heuristica, hipotesis):
 
 
 class Partida:
-    def __init__(self, base, metodo="heuristica", heuristica="mitad", limite_preguntas=LIMITE_PREGUNTAS):
+    def __init__(self, base, metodo="heuristica", heuristica="mitad", limite_preguntas=LIMITE_PREGUNTAS,
+                 detalle=True):
         self.base = base
+        self.detalle = detalle
+        self.decision = None
         self.metodo = metodo
         self.heuristica = heuristica
         self.estado = crear_estado(base, limite_preguntas)
@@ -44,7 +47,7 @@ class Partida:
             "hechos_conocidos": dict(estado.hechos_conocidos), "descartados": [],
             "candidatos": list(estado.candidatos), "hipotesis": hipotesis,
             "candidato_adivinado": None, "acerto": None, "puntos": estado.puntos,
-            "metricas": dict(estado.metricas),
+            "metricas": dict(estado.metricas), "decision": None,
         }
         paso.update(datos)
         self.historial.append(paso)
@@ -53,9 +56,25 @@ class Partida:
         """Devuelve la acción pendiente: preguntar, adivinar o fin."""
         inicio = time.perf_counter()
         try:
-            return self._siguiente()
+            accion = self._siguiente()
         finally:
             self.estado.metricas["tiempo"] += time.perf_counter() - inicio
+        self.decision = self._decidir(accion) if self.detalle and accion["tipo"] == "pregunta" else None
+        return accion
+
+    def _decidir(self, accion):
+        """Por qué se eligió esta pregunta, para mostrarlo en la interfaz."""
+        atributo = accion["atributo"]
+        decision = {"metodo": self.metodo, "atributo": atributo}
+        if self.metodo == "heuristica":
+            decision["criterio"] = self.heuristica
+            decision["valores"] = valores_atributos(self.estado, self.base, self.heuristica)[:5]
+        elif self.metodo == "atras":
+            decision.update(explicar_atras(elegir_hipotesis(self.estado), self.estado, self.base) or {})
+        else:
+            orden = list(self.base.candidatos[next(iter(self.base.candidatos))])
+            decision["posicion"] = (orden.index(atributo) + 1, len(orden))
+        return decision
 
     def _siguiente(self):
         if self.terminada:
@@ -89,14 +108,16 @@ class Partida:
             "pregunta", atributo=atributo, pregunta=self.accion["pregunta"], respuesta=respuesta,
             reglas_evaluadas=list(dict.fromkeys(self.estado.ultimas_evaluadas)),
             reglas_disparadas=[r["id"] for r in activadas],
-            hechos_nuevos={r["entonces"]: True for r in activadas}, descartados=list(descartados))
+            hechos_nuevos={r["entonces"]: True for r in activadas}, descartados=list(descartados),
+            decision=self.decision)
         return activadas, descartados
 
     def confirmar(self, acerto):
         candidato = self.accion["candidato"]
         adivinar(self.estado, candidato, lambda _: acerto)
         self._guardar_paso("adivinar", candidato_adivinado=candidato, acerto=acerto,
-                           descartados=[] if acerto else [candidato])
+                           descartados=[] if acerto else [candidato],
+                           decision={"metodo": self.metodo, "adivina": candidato})
         if self.motivo_intento == LIMITE:
             self.terminar(ACERTO if acerto else LIMITE)
         return acerto

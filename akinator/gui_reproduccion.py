@@ -5,7 +5,7 @@ import random
 from automatico import jugar_automatico
 from base_conocimiento import cargar_base
 from gui_dibujo import ORO, TINTA
-from utils import nombre_legible, texto_regla
+from utils import nombre_legible
 
 VELOCIDADES = (("lenta", "Lenta", 2000), ("normal", "Normal", 1000), ("rapida", "Rápida", 400))
 MORADO = "#6b5fa5"
@@ -62,8 +62,7 @@ class ReproduccionMixin:
         self.barra_superior(f"Paso {self.indice + 1} de {len(historial)}", paso["puntos"])
         self.burbuja(self.lineas_paso(paso))
         self.controles(len(historial) - 1)
-        self.barra_progreso(paso["candidatos"])
-        self.panel_razonamiento(self.datos_paso(paso), paso["candidatos"], paso["puntos"])
+        self.panel_detalle(historial, self.indice)
 
     def lineas_paso(self, paso):
         secreto = f"El agente piensa en: {nombre_legible(self.secreto)}"
@@ -83,38 +82,23 @@ class ReproduccionMixin:
         detalle = f"Preguntas: {resumen['preguntas']}   ·   Puntaje final: {resumen['puntaje']}"
         return [(secreto, 13, MORADO), (titulo, 34, TINTA), (detalle, 16, MORADO)]
 
-    def datos_paso(self, paso):
-        tipo = paso["tipo"]
-        if tipo == "inicio":
-            return None
-        anterior = self.repro.historial[self.indice - 1]
-        reglas = {r["id"]: r for r in self.base.reglas}
-        if tipo == "pregunta":
-            titulo = f"El agente respondió «{RESPUESTAS[paso['respuesta']]}» a: {paso['pregunta']}"
-        elif tipo == "adivinar":
-            titulo = f"{'Acertó' if paso['acerto'] else 'Falló'} con {nombre_legible(paso['candidato_adivinado'])}"
-        else:
-            titulo = "Fin de la partida"
-        return {"titulo": titulo, "reglas": "; ".join(texto_regla(reglas[i]) for i in paso["reglas_disparadas"]),
-                "descartados": paso["descartados"], "delta": paso["puntos"] - anterior["puntos"]}
-
     def controles(self, ultimo):
         w, h = self.ancho, self.alto
         alternar = "⏸ Pausar" if self.reproduciendo else "▶ Iniciar"
-        self.fila_botones(0.555 * h, 0.635 * h, [
+        self.fila_botones(0.405 * h, 0.475 * h, [
             ("⏮", self.secundario(), lambda: self.ir_a(0)),
             ("◀ Atrás", self.secundario(), lambda: self.ir_a(self.indice - 1)),
             (alternar, ORO if not self.reproduciendo else ROJO, self.alternar_reproduccion),
             ("Adelante ▶", self.secundario(), lambda: self.ir_a(self.indice + 1)),
-            ("⏭", self.secundario(), lambda: self.ir_a(ultimo))], tamano=14)
-        self.texto(0.38 * w, 0.685 * h, "Velocidad", 13, "#ffffff", True, "w")
-        inicio, fin, hueco = 0.50 * w, 0.95 * w, 0.01 * w
+            ("⏭", self.secundario(), lambda: self.ir_a(ultimo))], tamano=13, inicio=0.05, fin=0.60)
+        self.texto(0.615 * w, 0.44 * h, "Velocidad", 12, "#ffffff", True, "w")
+        inicio, fin, hueco = 0.70 * w, 0.95 * w, 0.006 * w
         ancho = (fin - inicio - 2 * hueco) / 3
         for numero, (clave, nombre, _) in enumerate(VELOCIDADES):
             x = inicio + numero * (ancho + hueco)
             elegido = self.velocidad == clave
-            self.boton(x, 0.66 * h, x + ancho, 0.715 * h, nombre, ORO if elegido else self.secundario(),
-                       lambda c=clave: self.cambiar_velocidad(c), TINTA if elegido else "#ffffff", 12)
+            self.boton(x, 0.415 * h, x + ancho, 0.465 * h, nombre, ORO if elegido else self.secundario(),
+                       lambda c=clave: self.cambiar_velocidad(c), TINTA if elegido else "#ffffff", 11)
 
     def ms_por_paso(self):
         return next(ms for clave, _, ms in VELOCIDADES if clave == self.velocidad)
@@ -150,6 +134,7 @@ class ReproduccionMixin:
         self.refrescar()
 
     def detener_reproduccion(self):
+        self.detener_cadena()
         if self.pendiente is not None:
             self.after_cancel(self.pendiente)
         self.pendiente = None

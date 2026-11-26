@@ -9,7 +9,7 @@ from utils import (confirmar_adivinanza, imprimir_traza, pedir_opcion, pedir_res
 
 def jugar(base, metodo, heuristica, responder, confirmar, mostrar=None, limite_preguntas=LIMITE_PREGUNTAS):
     """responder(atributo, pregunta) -> 'si'/'no'/'no_se'; confirmar(candidato) -> bool."""
-    partida = Partida(base, metodo, heuristica, limite_preguntas)
+    partida = Partida(base, metodo, heuristica, limite_preguntas, detalle=False)
     while True:
         accion = partida.siguiente()
         if accion["tipo"] == "fin":
@@ -45,7 +45,7 @@ def main():
         heuristica = "mitad"
         if metodo == "heuristica":
             heuristica = nombres_heuristicas[pedir_opcion(
-                "Heurística para elegir preguntas", ["Mitad", "Entropía", "Aleatoria"])]
+                "Heurística para elegir preguntas", ["Mitad", "Entropía"])]
         explicar = pedir_si_no("¿Activar el modo explicación?")
 
         print("\nPiensa en algo y responde sí, no o no sé.\n")

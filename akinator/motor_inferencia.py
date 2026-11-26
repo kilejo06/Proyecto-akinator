@@ -39,8 +39,7 @@ def atributo_a_probar(atributo, hipotesis, estado, base):
     return None if atributo in estado.preguntas_hechas else atributo
 
 
-def encadenamiento_atras(hipotesis, estado, base):
-    """Devuelve el atributo a preguntar para confirmar la hipótesis, o None si ya se puede adivinar."""
+def atributos_que_separan(hipotesis, estado, base):
     datos = base.candidatos
     otros = [c for c in estado.candidatos if c != hipotesis]
     separados = {}
@@ -48,11 +47,30 @@ def encadenamiento_atras(hipotesis, estado, base):
         cuantos = sum(datos[c][atributo] != valor for c in otros)
         if cuantos:
             separados[atributo] = cuantos
+    return separados
+
+
+def encadenamiento_atras(hipotesis, estado, base):
+    """Devuelve el atributo a preguntar para confirmar la hipótesis, o None si ya se puede adivinar."""
+    separados = atributos_que_separan(hipotesis, estado, base)
     estado.metricas["nodos_generados"] += len(separados)
     for atributo in sorted(separados, key=lambda a: (-separados[a], a)):
         pendiente = atributo_a_probar(atributo, hipotesis, estado, base)
         if pendiente:
             return pendiente
+    return None
+
+
+def explicar_atras(hipotesis, estado, base):
+    """Por qué encadenamiento_atras eligió su atributo: objetivo, regla seguida y candidatos que separa."""
+    separados = atributos_que_separan(hipotesis, estado, base)
+    for atributo in sorted(separados, key=lambda a: (-separados[a], a)):
+        pendiente = atributo_a_probar(atributo, hipotesis, estado, base)
+        if pendiente:
+            regla = None
+            if pendiente != atributo:
+                regla = next(r["id"] for r in base.reglas if r["entonces"] == atributo)
+            return {"hipotesis": hipotesis, "objetivo": atributo, "regla": regla, "separa": separados[atributo]}
     return None
 
 
