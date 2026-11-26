@@ -1,8 +1,6 @@
 """Ventana de comparación: los 4 métodos sobre la misma instancia, con tabla y gráfica de barras."""
-from tkinter import filedialog
-
 from base_conocimiento import cargar_base
-from comparacion import METODOS, comparar_metodo, guardar_csv
+from comparacion import METODOS, comparar_metodo
 from gui_dibujo import FONDOS, ORO, TINTA, aclarar, rect_redondo
 from utils import nombre_legible
 
@@ -96,20 +94,6 @@ class ComparacionMixin:
         return (f"{modo} · {len(base.candidatos)} candidatos · secreto: {secreto} · usuario: {usuario} "
                 f"· límite {self.ajustes['limite']} preguntas")
 
-    def guardar_resultados(self):
-        if self.cmp_corriendo:
-            return
-        if len(self.cmp_filas) < len(METODOS):
-            self.cmp_estado = "Primero ejecuta la comparación."
-            self.refrescar()
-            return
-        ruta = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv")],
-                                            initialfile=f"comparacion_{self.cmp_modo}.csv")
-        if ruta:
-            guardar_csv(ruta, self.cmp_filas)
-            self.cmp_estado = f"Guardado en {ruta}"
-            self.refrescar()
-
     # --- Dibujo -----------------------------------------------------------------
 
     def selector_cmp(self, y, etiqueta, opciones, actual, clave, x_etiqueta, x1, x2):
@@ -139,10 +123,8 @@ class ComparacionMixin:
                    "#a5f3fc" if elegido else BLANCO, not elegido)
         self.boton(0.43 * w, y, 0.47 * w, y + 0.05 * h, "▶", self.secundario(), lambda: self.mover_secreto(1),
                    tamano=12)
-        self.boton(0.61 * w, y, 0.77 * w, y + 0.05 * h, "Comparando..." if self.cmp_corriendo else "Comparar",
+        self.boton(0.61 * w, y, 0.95 * w, y + 0.05 * h, "Comparando..." if self.cmp_corriendo else "Comparar",
                    ORO, self.ejecutar_comparacion, TINTA, 14)
-        self.boton(0.78 * w, y, 0.95 * w, y + 0.05 * h, "Guardar CSV", self.secundario(), self.guardar_resultados,
-                   tamano=13)
         self.texto(0.05 * w, 0.265 * h, self.cmp_estado or self.descripcion_instancia(), 11, "#fde68a", False, "w",
                    0.90 * w)
         self.dibujar_tabla()

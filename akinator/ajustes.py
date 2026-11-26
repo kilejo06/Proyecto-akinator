@@ -12,8 +12,6 @@ POR_DEFECTO = {
     "limite": 20,
     "fondo": "noche",
     "razonamiento": True,
-    "animaciones": True,
-    "puntaje": True,
 }
 
 

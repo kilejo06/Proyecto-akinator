@@ -91,12 +91,13 @@ def adivinar(estado, candidato, confirmar):
 
 
 def atributos_utiles(estado, base):
-    "Atributos sin preguntar que separan a los candidatos que quedan"
+    "Atributos sin preguntar que separan a los candidatos que quedan; lo que concluye una regla no se pregunta"
     if len(estado.candidatos) < 2:
         return []
+    deducidos = {regla["entonces"] for regla in base.reglas}
     utiles = []
     for atributo in base.candidatos[estado.candidatos[0]]:
-        if atributo in estado.preguntas_hechas or atributo in estado.hechos_conocidos:
+        if atributo in deducidos or atributo in estado.preguntas_hechas or atributo in estado.hechos_conocidos:
             continue
         if len({base.candidatos[c][atributo] for c in estado.candidatos}) > 1:
             utiles.append(atributo)

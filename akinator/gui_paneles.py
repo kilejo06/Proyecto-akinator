@@ -33,9 +33,8 @@ class PanelesMixin:
             titulo = f"{'Acerté' if paso['acerto'] else 'Fallé'} con {nombre_legible(paso['candidato_adivinado'])}"
         else:
             titulo = "Fin de la partida"
-        if self.ajustes["puntaje"]:
-            delta = paso["puntos"] - historial[indice - 1]["puntos"]
-            titulo += f"   ·   Puntaje {delta:+d} (total {paso['puntos']})".replace("-", "−")
+        delta = paso["puntos"] - historial[indice - 1]["puntos"]
+        titulo += f"   ·   Puntaje {delta:+d} (total {paso['puntos']})".replace("-", "−")
         return titulo + f"   ·   Descartados: {len(paso['descartados'])}   ·   Quedan: {len(paso['candidatos'])}"
 
     def panel_detalle(self, historial, indice, decision=PASO):
@@ -108,11 +107,18 @@ class PanelesMixin:
             id_texto = self.texto(x, y1 + 9 * self.escala, texto, 10, BLANCO, False, "w")
             x = self.lienzo.bbox(id_texto)[2] + 22 * self.escala
         reglas = self.base.reglas
-        columnas = 1 if len(reglas) <= 14 else 2
+        columnas = 1 if len(reglas) <= 14 else 2 if len(reglas) <= 24 else 3
         filas = math.ceil(len(reglas) / columnas)
         arriba = y1 + 26 * self.escala
         alto_fila = min(0.045 * self.alto, (y2 - arriba) / filas)
         ancho_columna = (x2 - x1) / columnas
+        ancho_texto = ancho_columna - 24 * self.escala
+        fuentes = {}
+
+        def medida(tamano, negrita):
+            if (tamano, negrita) not in fuentes:
+                fuentes[tamano, negrita] = self.fuente_medida(tamano, negrita)
+            return fuentes[tamano, negrita]
         for numero, regla in enumerate(reglas):
             columna, fila = divmod(numero, filas)
             x, y = x1 + columna * ancho_columna, arriba + fila * alto_fila
@@ -124,10 +130,18 @@ class PanelesMixin:
                 estado = "evaluada"
             else:
                 estado = "ninguna"
-            self.lienzo.create_rectangle(x, y + alto_fila * 0.2, x + 10 * self.escala, y + alto_fila * 0.2 + 10 * self.escala,
+            centro = y + alto_fila / 2
+            lado = min(10 * self.escala, alto_fila * 0.6)
+            self.lienzo.create_rectangle(x, centro - lado / 2, x + lado, centro + lado / 2,
                                          fill=COLOR_REGLA[estado], outline="", tags="ui")
             texto = f"{regla['id']}  {' y '.join(regla['si'])} → {regla['entonces']}"
-            self.texto(x + 16 * self.escala, y + alto_fila * 0.2 + 5 * self.escala, texto, 10,
+            tamano, negrita = 10, estado == "ahora"
+            while tamano > 6 and (medida(tamano, negrita).metrics("linespace") > alto_fila
+                                  or medida(tamano, negrita).measure(texto) > ancho_texto):
+                tamano -= 1
+            while len(texto) > 4 and medida(tamano, negrita).measure(texto) > ancho_texto:
+                texto = texto[:-2] + "…"
+            self.texto(x + 16 * self.escala, centro, texto, tamano,
                        "#94a3b8" if estado == "ninguna" else BLANCO, estado == "ahora", "w")
 
     # --- Hechos -----------------------------------------------------------------
@@ -209,7 +223,7 @@ class PanelesMixin:
             if nombre in paso["descartados"]:
                 recien.append(forma)
             self.texto(x + ancho / 2, y + alto / 2, nombre_legible(nombre), 10, texto)
-        if recien and self.ajustes["animaciones"]:
+        if recien:
             self.animar_descarte(recien, 0)
 
     def animar_descarte(self, formas, numero):

@@ -1,5 +1,4 @@
 """Ejecuta los métodos sobre la misma instancia y resume sus métricas."""
-import csv
 import random
 
 from agente import resumen_metricas
@@ -13,9 +12,6 @@ METODOS = (("Heurística mitad", "heuristica", "mitad", "Heur. mitad"),
            ("Encadenamiento atrás", "atras", "mitad", "Atrás"))
 PROMEDIADAS = ("preguntas", "puntaje", "tiempo", "nodos_generados", "reglas_evaluadas", "reglas_disparadas",
                "hechos_inferidos", "hipotesis_probadas", "max_candidatos", "max_hechos", "minimo_teorico")
-COLUMNAS_CSV = ("metodo", "partidas", "aciertos", "optimas", "preguntas", "minimo_teorico", "tiempo_ms",
-                "nodos_generados", "reglas_evaluadas", "reglas_disparadas", "hechos_inferidos",
-                "hipotesis_probadas", "max_candidatos", "max_hechos", "puntaje")
 
 
 def comparar_metodo(base, secretos, metodo, limite_preguntas, prob_no_se=0.0, mentir=False, repeticiones=1,
@@ -47,11 +43,3 @@ def comparar(base, secretos, limite_preguntas, prob_no_se=0.0, mentir=False, rep
     """Juega cada método contra cada secreto y devuelve una fila por método."""
     return [comparar_metodo(base, secretos, metodo, limite_preguntas, prob_no_se, mentir, repeticiones, semilla)
             for metodo in METODOS]
-
-
-def guardar_csv(ruta, filas):
-    with open(ruta, "w", newline="", encoding="utf-8-sig") as archivo:
-        escritor = csv.writer(archivo)
-        escritor.writerow(COLUMNAS_CSV)
-        for fila in filas:
-            escritor.writerow([f"{fila[c]:.3f}" if isinstance(fila[c], float) else fila[c] for c in COLUMNAS_CSV])

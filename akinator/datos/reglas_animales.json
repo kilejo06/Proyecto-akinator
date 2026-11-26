@@ -16,7 +16,8 @@
   {
     "id": "A3",
     "si": [
-      "tiene_escamas"
+      "tiene_escamas",
+      "no:tiene_aletas"
     ],
     "entonces": "es_reptil"
   },
@@ -33,7 +34,8 @@
     "si": [
       "pone_huevos",
       "vive_en_agua",
-      "tiene_cuatro_patas"
+      "tiene_cuatro_patas",
+      "no:tiene_escamas"
     ],
     "entonces": "es_anfibio"
   },
@@ -50,7 +52,8 @@
     "si": [
       "es_ave",
       "vuela",
-      "es_carnivoro"
+      "es_carnivoro",
+      "no:vive_en_agua"
     ],
     "entonces": "es_ave_rapaz"
   },
@@ -58,7 +61,8 @@
     "id": "A8",
     "si": [
       "es_mamifero",
-      "vive_en_agua"
+      "vive_en_agua",
+      "no:tiene_cuatro_patas"
     ],
     "entonces": "es_mamifero_marino"
   },
@@ -118,8 +122,67 @@
     "si": [
       "es_depredador_salvaje",
       "es_grande",
-      "vive_en_frio"
+      "vive_en_frio",
+      "no:vive_en_agua"
     ],
     "entonces": "es_depredador_polar"
+  },
+  {
+    "id": "A16",
+    "si": [
+      "no:da_leche",
+      "no:tiene_plumas",
+      "no:tiene_escamas",
+      "no:tiene_aletas",
+      "no:tiene_cuatro_patas"
+    ],
+    "entonces": "es_invertebrado"
+  },
+  {
+    "id": "A17",
+    "si": [
+      "es_invertebrado",
+      "vuela"
+    ],
+    "entonces": "es_insecto"
+  },
+  {
+    "id": "A18",
+    "si": [
+      "es_invertebrado",
+      "es_venenoso",
+      "no:vuela"
+    ],
+    "entonces": "es_aracnido"
+  },
+  {
+    "id": "A19",
+    "si": [
+      "es_mamifero",
+      "es_herbivoro",
+      "vive_en_selva",
+      "no:tiene_cuatro_patas"
+    ],
+    "entonces": "es_primate"
+  },
+  {
+    "id": "A20",
+    "si": [
+      "es_mamifero",
+      "es_herbivoro",
+      "es_grande",
+      "no:es_carnivoro",
+      "no:es_domestico"
+    ],
+    "entonces": "es_gran_herbivoro_salvaje"
+  },
+  {
+    "id": "A21",
+    "si": [
+      "es_ave",
+      "vuela",
+      "vive_en_agua"
+    ],
+    "entonces": "es_ave_acuatica"
   }
 ]

@@ -8,7 +8,7 @@ import os
 import sys
 
 CARPETA_DATOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datos")
-MINIMO_CANDIDATOS = 30
+MINIMO_CANDIDATOS = 50
 
 
 def leer(nombre):
@@ -40,8 +40,8 @@ def validar_categoria(nombre, candidatos, reglas, preguntas, errores, avisos):
     if len(candidatos) < MINIMO_CANDIDATOS:
         avisos.append(f"{nombre}: solo hay {len(candidatos)} candidatos (meta: {MINIMO_CANDIDATOS})")
 
-    # Cada atributo y cada conclusión de regla necesita su pregunta
-    for atributo in sorted(atributos | set(conclusiones)):
+    # Cada atributo necesita su pregunta; las conclusiones de las reglas no se preguntan
+    for atributo in sorted(atributos):
         if atributo not in preguntas:
             errores.append(f"{nombre}: falta la pregunta de '{atributo}'")
 
@@ -89,8 +89,8 @@ def main():
     mixto = {**animales, **paises}
     validar_categoria("mixto", mixto, reglas_animales + reglas_paises, preguntas, errores, avisos)
 
-    # Preguntas que ningún atributo ni regla usa
-    usadas = atributos_de(mixto) | {r["entonces"] for r in reglas_animales + reglas_paises}
+    # Preguntas que ningún atributo usa
+    usadas = atributos_de(mixto)
     for clave in sorted(set(preguntas) - usadas):
         avisos.append(f"preguntas: '{clave}' no se usa en ningún lado")
 

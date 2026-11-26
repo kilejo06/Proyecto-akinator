@@ -122,15 +122,14 @@ class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
         getattr(self, "vista_" + self.vista)()
 
     def tick(self):
-        if self.ajustes["animaciones"]:
-            self.fase += 0.12
-            nuevo = math.sin(self.fase) * 7 * self.escala
-            self.lienzo.move("mago", 0, nuevo - self.vuelo)
-            self.vuelo = nuevo
-            if self.estrellas and random.random() < 0.5:
-                estrella = random.choice(self.estrellas)
-                color = self.lienzo.itemcget(estrella, "fill")
-                self.lienzo.itemconfigure(estrella, fill="#fde68a" if color == "#ffffff" else "#ffffff")
+        self.fase += 0.12
+        nuevo = math.sin(self.fase) * 7 * self.escala
+        self.lienzo.move("mago", 0, nuevo - self.vuelo)
+        self.vuelo = nuevo
+        if self.estrellas and random.random() < 0.5:
+            estrella = random.choice(self.estrellas)
+            color = self.lienzo.itemcget(estrella, "fill")
+            self.lienzo.itemconfigure(estrella, fill="#fde68a" if color == "#ffffff" else "#ffffff")
         self.after(60, self.tick)
 
     def mago(self, cx, cy, factor=1.0):
@@ -238,9 +237,6 @@ class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
             self.pensar(self.siguiente, "Vaya... déjame intentarlo otra vez", "triste")
 
     def pensar(self, despues, texto, expresion):
-        if not self.ajustes["animaciones"]:
-            despues()
-            return
         self.bloqueado, self.expresion, self.mensaje_temporal = True, expresion, texto
         self.refrescar()
         self.pendiente = self.after(650, lambda: self.terminar_pausa(despues))
@@ -287,7 +283,7 @@ class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
         self.boton(0.86 * w, 0.03 * h, 0.98 * w, 0.09 * h, "Ajustes", self.secundario(), self.abrir_ajustes,
                    tamano=13)
         self.texto(w / 2, 0.06 * h, centro, 18, BLANCO, True)
-        if self.ajustes["puntaje"] and puntos is not None:
+        if puntos is not None:
             self.texto(0.80 * w, 0.06 * h, f"Puntaje: {puntos}", 13, "#fde68a", True, "e")
 
     def burbuja(self, lineas):
@@ -378,9 +374,7 @@ class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
             titulo, detalle = "No conozco nada así...", "Tus respuestas no encajan con nadie que yo conozca."
         else:
             titulo, detalle = "Me has vencido", "No logré adivinar a tiempo. ¿Revancha?"
-        resumen = f"Preguntas: {estado.num_preguntas}"
-        if self.ajustes["puntaje"]:
-            resumen += f"   ·   Puntaje final: {estado.puntos}"
+        resumen = f"Preguntas: {estado.num_preguntas}   ·   Puntaje final: {estado.puntos}"
         self.burbuja([(titulo, 36, TINTA), (detalle, 17, "#6b5fa5"), (resumen, 15, "#6b5fa5")])
         self.fila_accion([("Jugar otra vez", ORO, lambda: self.empezar(self.base.modo), TINTA),
                           ("Menú", self.secundario(), self.ir_menu)])
@@ -419,25 +413,21 @@ class Akinator(ComparacionMixin, PanelesMixin, ReproduccionMixin, tk.Tk):
         rect_redondo(self.lienzo, 0.12 * w, 0.14 * h, 0.88 * w, 0.855 * h, 28 * self.escala, fill=panel,
                      outline=aclarar(panel, 1.8), width=2, tags="ui")
         a = self.ajustes
-        filas = [
-            ("Método de razonamiento", "", "selector", "metodo", OPCIONES_METODO),
-            ("Heurística", "Solo se usa con el método Heurística", "selector", "heuristica",
-             OPCIONES_HEURISTICA),
+        filas = [("Método de razonamiento", AYUDA_METODO[a["metodo"]], "selector", "metodo", OPCIONES_METODO)]
+        if a["metodo"] == "heuristica":
+            filas.append(("Heurística", AYUDA_HEURISTICA[a["heuristica"]], "selector", "heuristica",
+                          OPCIONES_HEURISTICA))
+        filas += [
             ("Límite de preguntas", "Preguntas que puedo hacer antes de rendirme", "contador", "limite", (5, 40)),
             ("Fondo", "El escenario de la partida", "selector", "fondo", OPCIONES_FONDO),
             ("Mostrar razonamiento", "Reglas activadas y candidatos descartados en cada respuesta", "interruptor",
              "razonamiento", None),
-            ("Animaciones", "Movimiento del mago y pausas para pensar", "interruptor", "animaciones", None),
-            ("Mostrar puntaje", "Puntos que suma o resta el agente", "interruptor", "puntaje", None),
         ]
         alto_fila = 0.095 * h
         for numero, (titulo, ayuda, tipo, clave, datos) in enumerate(filas):
             y = 0.19 * h + numero * alto_fila
             self.texto(0.16 * w, y + 0.012 * h, titulo, 17, BLANCO, True, "w")
-            ayuda_texto = {"metodo": AYUDA_METODO[a["metodo"]],
-                           "heuristica": AYUDA_HEURISTICA[a["heuristica"]]
-                           if a["metodo"] == "heuristica" else ayuda}.get(clave, ayuda)
-            self.texto(0.16 * w, y + 0.034 * h, ayuda_texto, 11, aclarar(FONDOS[a["fondo"]]["brillo"], 0.9), False,
+            self.texto(0.16 * w, y + 0.034 * h, ayuda, 11, aclarar(FONDOS[a["fondo"]]["brillo"], 0.9), False,
                        "nw", 0.40 * w)
             getattr(self, "control_" + tipo)(y, clave, datos)
         self.boton(0.12 * w, 0.89 * h, 0.40 * w, 0.96 * h, "Restablecer", self.secundario(), self.restablecer,

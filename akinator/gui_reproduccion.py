@@ -38,7 +38,7 @@ class ReproduccionMixin:
         self.texto(w / 2, 0.125 * h, f"Elige el secreto o deja que lo escoja al azar. Método: {metodo}", 13,
                    "#fde68a")
         nombres = sorted(self.base.candidatos, key=nombre_legible)
-        columnas = 5 if len(nombres) <= 35 else 7
+        columnas = 5 if len(nombres) <= 35 else 7 if len(nombres) <= 56 else 9
         filas = math.ceil(len(nombres) / columnas)
         x0, x1, y0, y1, hueco = 0.06 * w, 0.94 * w, 0.17 * h, 0.82 * h, 0.008 * w
         ancho = (x1 - x0 - hueco * (columnas - 1)) / columnas
