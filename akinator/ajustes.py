@@ -4,7 +4,7 @@ import os
 
 RUTA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ajustes.json")
 METODOS_VALIDOS = ("heuristica", "adelante", "atras")
-HEURISTICAS_VALIDAS = ("mitad", "entropia", "aleatoria")
+HEURISTICAS_VALIDAS = ("mitad", "entropia")
 FONDOS_VALIDOS = ("noche", "atardecer", "oceano")
 POR_DEFECTO = {
     "metodo": "heuristica",
